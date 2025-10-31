@@ -2,7 +2,7 @@ name: First Workflow
 
 on:
   push:
-    branches: [mani]
+    branches: [main]
 jobs:
   first-job:
     runs-on: ubuntu-latest
