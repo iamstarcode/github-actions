@@ -9,16 +9,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'pnpm'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
 
-      - name: Install dependencies
-        run: pnpm install
+      - run: pnpm --filter react-app install
+      - run: pnpm --filter react-app build
 
-      - name: Build project
-        run: pnpm build
+      - name: Copy built files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          target: '${{ secrets.DEPLOY_PATH }}/reactapp'
+          source: 'apps/react-app/dist/*'
+          strip_components: 3
+
+      - name: Reload Nginx
+        uses: appleboy/ssh-action@v0.1.7 # does'nt use curl
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            sudo systemctl reload nginx
