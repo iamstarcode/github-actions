@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
@@ -18,10 +18,5 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.get('/api/hello', (req, res) => {
-  console.log('jhded');
   res.json({ message: 'Hello from backend!' });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
