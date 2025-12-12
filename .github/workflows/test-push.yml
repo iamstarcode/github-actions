@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - 'nginx/**'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to push'
+        required: true
+        default: 'latest'
 
 jobs:
   build-and-push:
