@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/01-hello-world.yml']
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message to display'
+        required: true
+        default: 'Hello, world!'
 
 jobs:
   build:
@@ -12,8 +18,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run a one-line script
-        run: echo Hello, world!
+        run: echo ${{ github.event.inputs.message }}
       - name: Run a multi-line script
         run: |
-          echo Hello, world!
+          echo ${{ github.event.inputs.message }}
           echo This is a multi-line script.
