@@ -1,0 +1,91 @@
+name: Manual Deployment with Inputs
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Version to deploy (e.g., 1.0.0)'
+        required: true
+        type: string
+      skip-tests:
+        description: 'Skip running tests'
+        required: false
+        type: boolean
+        default: false
+      notify-slack:
+        description: 'Send Slack notification'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        run: |
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Version: ${{ github.event.inputs.version }}"
+          echo "Skip Tests: ${{ github.event.inputs.skip-tests }}"
+          echo "Notify Slack: ${{ github.event.inputs.notify-slack }}"
+          
+          # Validate version format
+          if [[ ! "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version format. Use semantic versioning (e.g., 1.0.0)"
+            exit 1
+          fi
+
+  test:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.event.inputs.skip-tests != 'true'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+      
+      - run: npm ci
+      - run: npm run test
+
+  deploy:
+    needs: [validate, test]
+    if: always() && needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to ${{ github.event.inputs.environment }}
+        run: |
+          echo "Deploying version ${{ github.event.inputs.version }}"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "GitHub Actor: ${{ github.actor }}"
+          echo "Timestamp: $(date)"
+          
+          # Your deployment script here
+          # ./scripts/deploy.sh ${{ github.event.inputs.environment }} ${{ github.event.inputs.version }}
+      
+      - name: Send Slack notification
+        if: github.event.inputs.notify-slack == 'true' && success()
+        run: |
+          echo "Sending Slack notification..."
+          # curl -X POST $SLACK_WEBHOOK_URL -d "Deployed version ${{ github.event.inputs.version }} to ${{ github.event.inputs.environment }}"
+      
+      - name: Send failure notification
+        if: github.event.inputs.notify-slack == 'true' && failure()
+        run: |
+          echo "Sending failure notification..."
+          # curl -X POST $SLACK_WEBHOOK_URL -d "Deployment failed!"

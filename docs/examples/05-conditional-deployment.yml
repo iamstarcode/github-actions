@@ -1,0 +1,75 @@
+name: Conditional Deployment
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      build-number: ${{ steps.build.outputs.build-number }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+      
+      - name: Build
+        id: build
+        run: |
+          npm ci
+          npm run build
+          echo "build-number=$(date +%s)" >> $GITHUB_OUTPUT
+  
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+      
+      - run: npm ci
+      - run: npm run test
+  
+  deploy-staging:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://staging.example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to staging
+        run: |
+          echo "Deploying build ${{ needs.build.outputs.build-number }}"
+          echo "Deploying to staging..."
+          # Add your deployment commands here
+  
+  deploy-production:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && startsWith(github.ref, 'refs/tags')
+    environment:
+      name: production
+      url: https://example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to production
+        run: |
+          echo "Deploying build ${{ needs.build.outputs.build-number }}"
+          echo "Deploying to production..."
+          # Add your deployment commands here

@@ -1,2 +1,3 @@
-FROM nginx:alpine
-COPY nginx.conf /etc/nginx/nginx.conf
+FROM alpine:latest
+RUN echo "Hello from test image" > /index.html
+CMD ["cat", "/index.html"]

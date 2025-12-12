@@ -1,0 +1,65 @@
+name: Artifacts and Caching
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm  # Built-in npm caching
+      
+      - name: Cache Node modules
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      
+      - run: npm ci
+      - run: npm run build
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-output
+          path: dist/
+          retention-days: 30
+          if-no-files-found: warn
+      
+      - name: Upload test reports
+        if: always()  # Upload even if tests fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-reports
+          path: coverage/
+  
+  test-artifact:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-output
+          path: ./dist
+      
+      - name: Verify artifacts
+        run: ls -la dist/
+      
+      - name: Download test reports
+        uses: actions/download-artifact@v3
+        with:
+          name: test-reports
+          path: ./coverage
+      
+      - name: Display coverage
+        run: cat coverage/coverage-summary.json || echo "No coverage data"

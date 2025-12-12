@@ -1,0 +1,10 @@
+name: Deploy uisng docker
+
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubunt-latest
+    steps:
+      - uses: actions/checkout@v4
